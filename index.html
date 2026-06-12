@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant Inventory Management</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- SheetJS for Excel parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       TOP HEADER / NAV
+  ═══════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">🍿</span>
+        <div>
+          <h1 class="brand-title">CineStock</h1>
+          <p class="brand-sub">Restaurant Inventory System</p>
+        </div>
+      </div>
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab-btn" data-tab="menu">🍽️ Menu &amp; Sell</button>
+        <button class="tab-btn" data-tab="inventory">📦 Inventory</button>
+        <button class="tab-btn" data-tab="sales">🧾 Sales Log</button>
+        <button class="tab-btn" data-tab="import">📥 Import Excel</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ══════════════════════════════
+         TAB: DASHBOARD
+    ══════════════════════════════ -->
+    <section class="tab-panel active" id="tab-dashboard">
+      <div class="section-header">
+        <h2>Dashboard</h2>
+        <span class="date-badge" id="today-date"></span>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Ingredients</span>
+            <span class="kpi-value" id="kpi-total-ingredients">0</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-info">
+            <span class="kpi-label">In Stock</span>
+            <span class="kpi-value" id="kpi-in-stock">0</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-orange">
+          <div class="kpi-icon">⚠️</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Low Stock Alerts</span>
+            <span class="kpi-value" id="kpi-low-stock">0</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-icon">❌</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Out of Stock</span>
+            <span class="kpi-value" id="kpi-out-stock">0</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-icon">🍽️</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Menu Items</span>
+            <span class="kpi-value" id="kpi-menu-items">0</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-teal">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Today's Sales</span>
+            <span class="kpi-value" id="kpi-today-sales">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Low Stock Alert Table -->
+      <div class="card mt-24">
+        <div class="card-header">
+          <h3>⚠️ Low Stock Alerts</h3>
+          <span class="badge badge-orange" id="low-stock-count">0 items</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="low-stock-table">
+            <thead>
+              <tr>
+                <th>Ingredient</th>
+                <th>Unit</th>
+                <th>Current Stock</th>
+                <th>Low Stock Threshold</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="low-stock-tbody">
+              <tr><td colspan="6" class="empty-msg">No low stock items 🎉</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Daily Usage -->
+      <div class="card mt-24">
+        <div class="card-header">
+          <h3>📈 Today's Ingredient Usage</h3>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ingredient</th>
+                <th>Used Today</th>
+                <th>Unit</th>
+                <th>Remaining Stock</th>
+              </tr>
+            </thead>
+            <tbody id="daily-usage-tbody">
+              <tr><td colspan="4" class="empty-msg">No usage recorded today</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════
+         TAB: MENU & SELL
+    ══════════════════════════════ -->
+    <section class="tab-panel" id="tab-menu">
+      <div class="section-header">
+        <h2>Menu &amp; Sell</h2>
+        <div class="search-bar">
+          <input type="text" id="menu-search" placeholder="🔍 Search menu items..." />
+          <select id="menu-filter">
+            <option value="all">All Categories</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="menu-grid" id="menu-grid">
+        <div class="empty-msg">No menu items loaded. Please import an Excel file.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════
+         TAB: INVENTORY
+    ══════════════════════════════ -->
+    <section class="tab-panel" id="tab-inventory">
+      <div class="section-header">
+        <h2>Inventory Management</h2>
+        <div class="search-bar">
+          <input type="text" id="inv-search" placeholder="🔍 Search ingredients..." />
+          <select id="inv-filter">
+            <option value="all">All Status</option>
+            <option value="ok">✅ In Stock</option>
+            <option value="low">⚠️ Low Stock</option>
+            <option value="out">❌ Out of Stock</option>
+          </select>
+          <button class="btn btn-primary" id="add-ingredient-btn">+ Add Ingredient</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="inv-table">
+            <thead>
+              <tr>
+                <th>Ingredient</th>
+                <th>Unit</th>
+                <th>Current Stock</th>
+                <th>Low Alert Threshold</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody">
+              <tr><td colspan="6" class="empty-msg">No ingredients loaded.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════
+         TAB: SALES LOG
+    ══════════════════════════════ -->
+    <section class="tab-panel" id="tab-sales">
+      <div class="section-header">
+        <h2>Sales Log</h2>
+        <div class="search-bar">
+          <input type="text" id="sales-search" placeholder="🔍 Search sales..." />
+          <button class="btn btn-danger" id="clear-sales-btn">🗑️ Clear Log</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date &amp; Time</th>
+                <th>Menu Item</th>
+                <th>Qty Sold</th>
+                <th>Price (PKR)</th>
+                <th>Total Revenue</th>
+                <th>Ingredients Used</th>
+              </tr>
+            </thead>
+            <tbody id="sales-tbody">
+              <tr><td colspan="6" class="empty-msg">No sales recorded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════
+         TAB: IMPORT EXCEL
+    ══════════════════════════════ -->
+    <section class="tab-panel" id="tab-import">
+      <div class="section-header">
+        <h2>Import Excel File</h2>
+      </div>
+      <div class="card import-card">
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📁</div>
+          <p class="upload-title">Drop your <strong>Recipes_Combined.xlsx</strong> here</p>
+          <p class="upload-sub">or click to browse</p>
+          <input type="file" id="excel-file-input" accept=".xlsx,.xls" hidden />
+          <button class="btn btn-primary mt-16" id="upload-btn">📂 Choose File</button>
+        </div>
+        <div class="import-status" id="import-status"></div>
+
+        <!-- Manual ingredient add -->
+        <hr class="divider" />
+        <h3 class="mt-16">➕ Manually Add Ingredient</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Ingredient Name</label>
+            <input type="text" id="manual-name" placeholder="e.g. Pop-Corn Seeds" />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <input type="text" id="manual-unit" placeholder="e.g. GRM, Ml, No" />
+          </div>
+          <div class="form-group">
+            <label>Initial Stock</label>
+            <input type="number" id="manual-stock" placeholder="e.g. 5000" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Low Stock Alert At</label>
+            <input type="number" id="manual-threshold" placeholder="e.g. 500" min="0" step="0.01" />
+          </div>
+        </div>
+        <button class="btn btn-success" id="manual-add-btn">Add Ingredient</button>
+
+        <!-- Reset -->
+        <hr class="divider" />
+        <div class="danger-zone">
+          <h3>⚠️ Danger Zone</h3>
+          <p>This will delete all imported data, inventory, and sales history.</p>
+          <button class="btn btn-danger" id="reset-all-btn">🗑️ Reset All Data</button>
+        </div>
+      </div>
+    </section>
+
+  </main><!-- /main-content -->
+
+
+  <!-- ═══════════════════════
+       MODALS
+  ═══════════════════════ -->
+
+  <!-- SELL MODAL -->
+  <div class="modal-overlay" id="sell-modal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="sell-modal-title">Sell Item</h3>
+        <button class="modal-close" id="sell-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Recipe ingredients that will be deducted:</p>
+        <ul class="recipe-list" id="sell-recipe-list"></ul>
+        <div class="form-group mt-16">
+          <label>Quantity to Sell</label>
+          <input type="number" id="sell-qty" value="1" min="1" step="1" />
+        </div>
+        <p class="modal-warning" id="sell-stock-warning"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="sell-cancel-btn">Cancel</button>
+        <button class="btn btn-success" id="sell-confirm-btn">✅ Confirm Sale</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD STOCK MODAL -->
+  <div class="modal-overlay" id="stock-modal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="stock-modal-title">Add Stock</h3>
+        <button class="modal-close" id="stock-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Ingredient</label>
+          <input type="text" id="stock-ing-name" disabled />
+        </div>
+        <div class="form-group">
+          <label>Current Stock</label>
+          <input type="text" id="stock-current" disabled />
+        </div>
+        <div class="form-group">
+          <label>Amount to Add</label>
+          <input type="number" id="stock-add-amount" value="0" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Low Stock Alert Threshold</label>
+          <input type="number" id="stock-threshold" min="0" step="0.01" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="stock-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="stock-confirm-btn">📦 Update Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
